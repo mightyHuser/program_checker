@@ -2,7 +2,15 @@
     "test_pass.py": [
         {
             "input_data": "",
-            "expected_output": ""
+            "expected_output": "",
+            "run_only": true
+        }
+    ],
+    "test_error.py": [
+        {
+            "input_data": "",
+            "expected_output": "",
+            "run_only": true
         }
     ]
 }

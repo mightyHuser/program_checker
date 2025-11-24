@@ -169,8 +169,10 @@ const Runner: React.FC<RunnerProps> = ({
                   ) : (
                     <>
                       <div>
-                        <span className="text-gray-500">出力:</span>{" "}
-                        {res.output}
+                        <div className="text-gray-500 mb-1">出力:</div>
+                        <div className="pl-2 border-l-2 border-gray-300">
+                          {res.output}
+                        </div>
                       </div>
                       {res.diff && (
                         <div className="mt-2">

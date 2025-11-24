@@ -18,12 +18,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
       <ul>
         <li
-          className={`p-3 cursor-pointer hover:bg-gray-700 border-b border-gray-700 ${
-            selectedFile === "__COMMON__" ? "bg-blue-600" : "bg-gray-900"
+          className={`p-3 cursor-pointer hover:bg-gray-700 border-b-2 border-gray-600 font-bold text-yellow-400 ${
+            selectedFile === "__COMMON__" ? "bg-gray-700" : "bg-gray-800"
           }`}
           onClick={() => onSelectFile("__COMMON__")}
         >
-          [共通設定]
+          ★ 共通設定
         </li>
         {files.map((file) => (
           <li
