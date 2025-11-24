@@ -1,0 +1,20 @@
+Attempting to open dialog with script: C:\Users\might\code\program_checker\backend\directory_dialog.py
+Current dir: C:\Users\might\code\program_checker
+Subprocess return code: 0
+Subprocess stdout: 
+
+Subprocess stderr: 
+Attempting to open dialog with script: C:\Users\might\code\program_checker\backend\directory_dialog.py
+Current dir: C:\Users\might\code\program_checker
+Subprocess return code: 0
+Subprocess stdout: 
+
+Subprocess stderr: 
+Thread starting dialog script: C:\Users\might\code\program_checker\backend\directory_dialog.py
+Thread finished. Return code: 0
+Stdout: 
+
+Thread starting dialog script: C:\Users\might\code\program_checker\backend\directory_dialog.py
+Thread finished. Return code: 0
+Stdout: C:/Users/might/Downloads/sourcecode
+
