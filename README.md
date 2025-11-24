@@ -42,7 +42,7 @@ Python プログラムのテストと採点を効率化するためのツール�
 1. **リポジトリのクローン**
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/mightyHuser/program_checker.git
    cd program_checker
    ```
 
