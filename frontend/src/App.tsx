@@ -8,6 +8,7 @@ import Runner from "./components/Runner";
 interface TestCase {
   input_data: string;
   expected_output: string;
+  run_only?: boolean;
 }
 
 function App() {
@@ -15,8 +16,9 @@ function App() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string>("");
   const [testCases, setTestCases] = useState<TestCase[]>([]);
-  const [activeTab, setActiveTab] = useState<"code" | "tests">("code");
   const [currentDir, setCurrentDir] = useState<string>("");
+
+  const [batchResults, setBatchResults] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDirectory();
@@ -69,6 +71,7 @@ function App() {
               clearInterval(intervalId);
               setCurrentDir(statusRes.data.path);
               setSelectedFile(null);
+              setBatchResults([]); // Reset batch results on dir change
             } else if (status === "cancelled") {
               clearInterval(intervalId);
               // Do nothing or show message
@@ -123,6 +126,9 @@ function App() {
   const handleUpdateTestCases = async (newCases: TestCase[]) => {
     setTestCases(newCases);
     if (selectedFile) {
+      if (selectedFile === "__COMMON__") {
+        setCommonTestCases(newCases);
+      }
       try {
         await axios.post(
           `http://localhost:8000/api/config/${selectedFile}`,
@@ -133,6 +139,46 @@ function App() {
       }
     }
   };
+
+  const [useCommonTests, setUseCommonTests] = useState(false);
+  const [commonTestCases, setCommonTestCases] = useState<TestCase[]>([]);
+
+  useEffect(() => {
+    if (useCommonTests) {
+      fetchCommonTestCases();
+    }
+  }, [useCommonTests]);
+
+  const fetchCommonTestCases = async () => {
+    try {
+      const res = await axios.get(
+        "http://localhost:8000/api/config/__COMMON__"
+      );
+      setCommonTestCases(res.data.test_cases);
+    } catch (err) {
+      console.error("Failed to fetch common config", err);
+    }
+  };
+
+  const handleBatchRun = async () => {
+    if (!files.length) return;
+    try {
+      const res = await axios.post("http://localhost:8000/api/batch", {
+        filenames: files,
+        use_common: useCommonTests,
+      });
+      setBatchResults(res.data.batch_results);
+      alert("一括実行が完了しました。");
+    } catch (err) {
+      console.error("Batch run failed", err);
+      alert("一括実行に失敗しました。");
+    }
+  };
+
+  // Find result for selected file
+  const currentBatchResult = batchResults.find(
+    (r) => r.filename === selectedFile
+  );
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden flex-col">
@@ -149,6 +195,24 @@ function App() {
           >
             ディレクトリ選択 (エクスプローラー)
           </button>
+
+          <div className="flex items-center gap-2 ml-4 border-l border-gray-600 pl-4">
+            <label className="flex items-center gap-1 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={useCommonTests}
+                onChange={(e) => setUseCommonTests(e.target.checked)}
+              />
+              共通テストで実行
+            </label>
+            <button
+              onClick={handleBatchRun}
+              className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm font-bold whitespace-nowrap"
+              disabled={!files.length}
+            >
+              全ファイル一括実行
+            </button>
+          </div>
         </div>
       </div>
 
@@ -159,50 +223,63 @@ function App() {
           onSelectFile={setSelectedFile}
         />
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {selectedFile ? (
-            <>
-              <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+            <div className="flex flex-col h-full">
+              <div className="bg-white border-b border-gray-200 px-4 py-2">
                 <h1 className="font-bold text-lg">{selectedFile}</h1>
-                <div className="space-x-2">
-                  <button
-                    className={`px-3 py-1 rounded ${
-                      activeTab === "code"
-                        ? "bg-blue-100 text-blue-700"
-                        : "hover:bg-gray-100"
-                    }`}
-                    onClick={() => setActiveTab("code")}
-                  >
-                    コード
-                  </button>
-                  <button
-                    className={`px-3 py-1 rounded ${
-                      activeTab === "tests"
-                        ? "bg-blue-100 text-blue-700"
-                        : "hover:bg-gray-100"
-                    }`}
-                    onClick={() => setActiveTab("tests")}
-                  >
-                    テスト設定
-                  </button>
-                </div>
               </div>
 
-              <div className="flex-1 overflow-hidden flex flex-col">
-                <div className="flex-1 overflow-hidden relative">
-                  {activeTab === "code" ? (
-                    <FileViewer content={fileContent} />
-                  ) : (
+              {/* 3-Pane Layout: Viewer (Top), TestManager (Middle), Runner (Bottom) */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* File Viewer (35%) - Hide for Common Settings */}
+                {selectedFile !== "__COMMON__" && (
+                  <div className="h-[35%] overflow-hidden border-b border-gray-200 flex flex-col">
+                    <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
+                      ソースコード
+                    </div>
+                    <div className="flex-1 overflow-auto">
+                      <FileViewer content={fileContent} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Test Manager (30% or 100% if Common) */}
+                <div
+                  className={`${
+                    selectedFile === "__COMMON__" ? "h-full" : "h-[30%]"
+                  } overflow-hidden border-b border-gray-200 flex flex-col`}
+                >
+                  <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
+                    {selectedFile === "__COMMON__"
+                      ? "共通テスト設計"
+                      : "テスト設計"}
+                  </div>
+                  <div className="flex-1 overflow-auto">
                     <TestManager
                       testCases={testCases}
                       onUpdate={handleUpdateTestCases}
                     />
-                  )}
+                  </div>
                 </div>
 
-                <Runner filename={selectedFile} testCases={testCases} />
+                {/* Runner (35%) - Hide for Common Settings */}
+                {selectedFile !== "__COMMON__" && (
+                  <div className="h-[35%] overflow-hidden flex flex-col">
+                    <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
+                      実行結果 {useCommonTests ? "(共通テスト)" : ""}
+                    </div>
+                    <div className="flex-1 overflow-auto">
+                      <Runner
+                        filename={selectedFile}
+                        testCases={useCommonTests ? commonTestCases : testCases}
+                        externalResult={currentBatchResult}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            </>
+            </div>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500">
               ファイルを選択して採点を開始してください

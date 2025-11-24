@@ -218,18 +218,21 @@ def grade_code(request: GradingRequest):
     elif stderr:
         status = "ERROR"
     else:
-        actual = stdout.strip().replace("\r\n", "\n")
-        expected = request.expected_output.strip().replace("\r\n", "\n")
-        
-        if actual != expected:
-            status = "FAIL"
-            diff = "\n".join(difflib.unified_diff(
-                expected.splitlines(), 
-                actual.splitlines(), 
-                fromfile='Expected', 
-                tofile='Actual',
-                lineterm=''
-            ))
+        if request.run_only:
+            status = "PASS"
+        else:
+            actual = stdout.strip().replace("\r\n", "\n")
+            expected = request.expected_output.strip().replace("\r\n", "\n")
+            
+            if actual != expected:
+                status = "FAIL"
+                diff = "\n".join(difflib.unified_diff(
+                    expected.splitlines(), 
+                    actual.splitlines(), 
+                    fromfile='Expected', 
+                    tofile='Actual',
+                    lineterm=''
+                ))
 
     return ExecutionResult(
         filename=request.filename,
@@ -246,6 +249,10 @@ def batch_run(request: BatchExecutionRequest):
     config = load_config()
     results = []
     
+    common_tests = []
+    if request.use_common:
+        common_tests = config.get("__COMMON__", [])
+    
     for filename in request.filenames:
         filepath = os.path.join(current_work_dir, filename)
         if not os.path.exists(filepath):
@@ -256,7 +263,11 @@ def batch_run(request: BatchExecutionRequest):
             })
             continue
             
-        test_cases = config.get(filename, [])
+        if request.use_common:
+            test_cases = common_tests
+        else:
+            test_cases = config.get(filename, [])
+            
         if not test_cases:
             results.append({
                 "filename": filename,
@@ -272,6 +283,7 @@ def batch_run(request: BatchExecutionRequest):
             # tc is a dict here because of json load
             input_data = tc.get("input_data", "")
             expected_output = tc.get("expected_output", "")
+            run_only = tc.get("run_only", False)
             
             stdout, stderr, exec_time, is_timeout = executor.run(filepath, input_data)
             
@@ -281,15 +293,29 @@ def batch_run(request: BatchExecutionRequest):
             elif stderr:
                 status = "ERROR"
             else:
-                actual = stdout.strip().replace("\r\n", "\n")
-                expected = expected_output.strip().replace("\r\n", "\n")
-                if actual != expected:
-                    status = "FAIL"
+                if not run_only:
+                    actual = stdout.strip().replace("\r\n", "\n")
+                    expected = expected_output.strip().replace("\r\n", "\n")
+                    if actual != expected:
+                        status = "FAIL"
             
+            diff = None
+            if status == "FAIL":
+                 diff = "\n".join(difflib.unified_diff(
+                    expected.splitlines(), 
+                    actual.splitlines(), 
+                    fromfile='Expected', 
+                    tofile='Actual',
+                    lineterm=''
+                ))
+
             file_results.append({
                 "test_case": i + 1,
                 "status": status,
-                "execution_time": exec_time
+                "execution_time": exec_time,
+                "output": stdout,
+                "error": stderr,
+                "diff": diff
             })
             
         results.append({

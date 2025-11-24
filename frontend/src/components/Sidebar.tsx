@@ -17,6 +17,14 @@ const Sidebar: React.FC<SidebarProps> = ({
         Program Checker
       </div>
       <ul>
+        <li
+          className={`p-3 cursor-pointer hover:bg-gray-700 border-b border-gray-700 ${
+            selectedFile === "__COMMON__" ? "bg-blue-600" : "bg-gray-900"
+          }`}
+          onClick={() => onSelectFile("__COMMON__")}
+        >
+          [共通設定]
+        </li>
         {files.map((file) => (
           <li
             key={file}

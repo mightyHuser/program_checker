@@ -4,6 +4,7 @@ from typing import List, Optional
 class TestCase(BaseModel):
     input_data: str
     expected_output: str
+    run_only: bool = False
 
 class FileConfig(BaseModel):
     filename: str
@@ -24,11 +25,13 @@ class ExecutionResult(BaseModel):
 
 class BatchExecutionRequest(BaseModel):
     filenames: List[str]
+    use_common: bool = False
 
 class GradingRequest(BaseModel):
     filename: str
     input_data: str
     expected_output: str
+    run_only: bool = False
 
 class DirectoryRequest(BaseModel):
     path: str

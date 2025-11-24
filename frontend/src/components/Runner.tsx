@@ -4,6 +4,7 @@ import axios from "axios";
 interface TestCase {
   input_data: string;
   expected_output: string;
+  run_only?: boolean;
 }
 
 interface ExecutionResult {
@@ -19,13 +20,59 @@ interface ExecutionResult {
 interface RunnerProps {
   filename: string;
   testCases: TestCase[];
+  externalResult?: {
+    filename: string;
+    results?: {
+      test_case: number;
+      status: string;
+      execution_time: number;
+      output: string;
+      error: string;
+      diff?: string;
+    }[];
+  };
 }
 
-const Runner: React.FC<RunnerProps> = ({ filename, testCases }) => {
+const Runner: React.FC<RunnerProps> = ({
+  filename,
+  testCases,
+  externalResult,
+}) => {
   const [results, setResults] = useState<{ [key: number]: ExecutionResult }>(
     {}
   );
   const [loading, setLoading] = useState(false);
+
+  // Update results when externalResult changes
+  React.useEffect(() => {
+    if (externalResult && externalResult.filename === filename) {
+      const newResults: { [key: number]: ExecutionResult } = {};
+
+      // Check if results array exists (it might not if status is NO_TESTS or NOT_FOUND)
+      if (externalResult.results && Array.isArray(externalResult.results)) {
+        externalResult.results.forEach((r) => {
+          // Map batch result to ExecutionResult format
+          // Note: batch result uses 1-based index for test_case
+          newResults[r.test_case - 1] = {
+            filename: filename,
+            status: r.status,
+            output: r.output || "",
+            error: r.error || "",
+            execution_time: r.execution_time,
+            diff: r.diff,
+          };
+        });
+      }
+      setResults(newResults);
+    }
+  }, [externalResult, filename]);
+
+  // Reset results when filename changes (if not handled by externalResult)
+  React.useEffect(() => {
+    if (!externalResult || externalResult.filename !== filename) {
+      setResults({});
+    }
+  }, [filename]);
 
   const runSingle = async (index: number, tc: TestCase) => {
     setLoading(true);
@@ -36,6 +83,7 @@ const Runner: React.FC<RunnerProps> = ({ filename, testCases }) => {
           filename: filename,
           input_data: tc.input_data,
           expected_output: tc.expected_output,
+          run_only: tc.run_only,
         }
       );
       setResults((prev) => ({ ...prev, [index]: response.data }));
@@ -58,6 +106,7 @@ const Runner: React.FC<RunnerProps> = ({ filename, testCases }) => {
             filename: filename,
             input_data: testCases[i].input_data,
             expected_output: testCases[i].expected_output,
+            run_only: testCases[i].run_only,
           }
         );
         newResults[i] = response.data;
@@ -70,7 +119,7 @@ const Runner: React.FC<RunnerProps> = ({ filename, testCases }) => {
   };
 
   return (
-    <div className="p-4 bg-white border-t border-gray-300 h-1/3 overflow-y-auto">
+    <div className="p-4 bg-white border-t border-gray-300 h-full overflow-y-auto">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">実行結果</h2>
         <button

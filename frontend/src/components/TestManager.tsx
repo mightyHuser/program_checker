@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 interface TestCase {
   input_data: string;
   expected_output: string;
+  run_only?: boolean;
 }
 
 interface TestManagerProps {
@@ -29,7 +30,7 @@ const TestManager: React.FC<TestManagerProps> = ({ testCases, onUpdate }) => {
   const handleChange = (
     index: number,
     field: keyof TestCase,
-    value: string
+    value: string | boolean
   ) => {
     const newCases = [...localTestCases];
     newCases[index] = { ...newCases[index], [field]: value };
@@ -71,15 +72,30 @@ const TestManager: React.FC<TestManagerProps> = ({ testCases, onUpdate }) => {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold mb-1">
-                期待される出力 (標準出力)
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-bold">
+                  期待される出力 (標準出力)
+                </label>
+                <label className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={tc.run_only || false}
+                    onChange={(e) =>
+                      handleChange(index, "run_only", e.target.checked)
+                    }
+                  />
+                  検証しない (実行のみ)
+                </label>
+              </div>
               <textarea
-                className="w-full p-2 border rounded text-sm font-mono h-24"
+                className={`w-full p-2 border rounded text-sm font-mono h-24 ${
+                  tc.run_only ? "bg-gray-100 text-gray-400" : ""
+                }`}
                 value={tc.expected_output}
                 onChange={(e) =>
                   handleChange(index, "expected_output", e.target.value)
                 }
+                disabled={tc.run_only}
               />
             </div>
           </div>
