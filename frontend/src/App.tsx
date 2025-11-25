@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar";
 import FileViewer from "./components/FileViewer";
 import TestManager from "./components/TestManager";
 import Runner from "./components/Runner";
+import PdfViewer from "./components/PdfViewer";
 
 interface TestCase {
   input_data: string;
@@ -17,28 +18,51 @@ function App() {
   const [fileContent, setFileContent] = useState<string>("");
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [currentDir, setCurrentDir] = useState<string>("");
+  const [viewMode, setViewMode] = useState<"code" | "pdf">("code");
 
   const [batchResults, setBatchResults] = useState<any[]>([]);
+  const [batchRunning, setBatchRunning] = useState(false);
 
   useEffect(() => {
     fetchDirectory();
+    // Poll for directory status
+    const pollInterval = setInterval(checkDirectoryStatus, 1000);
+    return () => clearInterval(pollInterval);
   }, []);
 
   useEffect(() => {
     if (currentDir) {
       fetchFiles();
     }
-  }, [currentDir]);
+  }, [currentDir, viewMode]);
 
   useEffect(() => {
     if (selectedFile) {
-      fetchFileContent(selectedFile);
-      fetchTestCases(selectedFile);
+      if (viewMode === "code") {
+        fetchFileContent(selectedFile);
+        fetchTestCases(selectedFile);
+      }
     } else {
       setFileContent("");
       setTestCases([]);
     }
-  }, [selectedFile]);
+  }, [selectedFile, viewMode]);
+
+  const checkDirectoryStatus = async () => {
+    try {
+      const res = await axios.get(
+        "http://localhost:8000/api/select-directory/status"
+      );
+      if (res.data.status === "success" && res.data.path) {
+        if (res.data.path !== currentDir) {
+          setCurrentDir(res.data.path);
+          // fetchFiles will be triggered by useEffect
+        }
+      }
+    } catch (err) {
+      console.error("Failed to check directory status", err);
+    }
+  };
 
   const fetchDirectory = async () => {
     try {
@@ -59,32 +83,7 @@ function App() {
         startRes.data.status === "started" ||
         startRes.data.status === "already_running"
       ) {
-        // Poll for status
-        const intervalId = setInterval(async () => {
-          try {
-            const statusRes = await axios.get(
-              "http://localhost:8000/api/select-directory/status"
-            );
-            const status = statusRes.data.status;
-
-            if (status === "success") {
-              clearInterval(intervalId);
-              setCurrentDir(statusRes.data.path);
-              setSelectedFile(null);
-              setBatchResults([]); // Reset batch results on dir change
-            } else if (status === "cancelled") {
-              clearInterval(intervalId);
-              // Do nothing or show message
-            } else if (status === "error") {
-              clearInterval(intervalId);
-              alert(`エラーが発生しました: ${statusRes.data.error}`);
-            }
-            // If "running" or "idle", continue polling
-          } catch (err) {
-            console.error("Polling error", err);
-            clearInterval(intervalId);
-          }
-        }, 1000); // Poll every 1 second
+        // Polling is handled by useEffect
       }
     } catch (err) {
       console.error("Failed to start directory selection", err);
@@ -94,14 +93,21 @@ function App() {
 
   const fetchFiles = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/files");
+      const extension = viewMode === "code" ? "py" : "pdf";
+      const res = await axios.get(
+        `http://localhost:8000/api/files?extension=${extension}`
+      );
       setFiles(res.data.files);
+      setSelectedFile(null); // Reset selection when file list changes
+      setFileContent("");
+      setTestCases([]);
     } catch (err) {
       console.error("Failed to fetch files", err);
     }
   };
 
   const fetchFileContent = async (filename: string) => {
+    if (filename === "__COMMON__") return;
     try {
       const res = await axios.get(
         `http://localhost:8000/api/files/${filename}`
@@ -162,6 +168,7 @@ function App() {
 
   const handleBatchRun = async () => {
     if (!files.length) return;
+    setBatchRunning(true);
     try {
       const res = await axios.post("http://localhost:8000/api/batch", {
         filenames: files,
@@ -172,6 +179,8 @@ function App() {
     } catch (err) {
       console.error("Batch run failed", err);
       alert("一括実行に失敗しました。");
+    } finally {
+      setBatchRunning(false);
     }
   };
 
@@ -197,21 +206,50 @@ function App() {
           </button>
 
           <div className="flex items-center gap-2 ml-4 border-l border-gray-600 pl-4">
-            <label className="flex items-center gap-1 text-sm cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={useCommonTests}
-                onChange={(e) => setUseCommonTests(e.target.checked)}
-              />
-              共通テストで実行
-            </label>
-            <button
-              onClick={handleBatchRun}
-              className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm font-bold whitespace-nowrap"
-              disabled={!files.length}
-            >
-              全ファイル一括実行
-            </button>
+            {/* Mode Switcher */}
+            <div className="flex bg-gray-700 rounded p-1">
+              <button
+                className={`px-3 py-1 rounded text-sm font-bold ${
+                  viewMode === "code"
+                    ? "bg-white shadow text-blue-600"
+                    : "text-gray-300 hover:bg-gray-600"
+                }`}
+                onClick={() => setViewMode("code")}
+              >
+                コード
+              </button>
+              <button
+                className={`px-3 py-1 rounded text-sm font-bold ${
+                  viewMode === "pdf"
+                    ? "bg-white shadow text-red-600"
+                    : "text-gray-300 hover:bg-gray-600"
+                }`}
+                onClick={() => setViewMode("pdf")}
+              >
+                PDF
+              </button>
+            </div>
+
+            {viewMode === "code" && (
+              <>
+                <label className="flex items-center gap-1 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={useCommonTests}
+                    onChange={(e) => setUseCommonTests(e.target.checked)}
+                    className="mr-1"
+                  />
+                  共通テストで実行
+                </label>
+                <button
+                  onClick={handleBatchRun}
+                  className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm font-bold whitespace-nowrap disabled:bg-gray-500"
+                  disabled={!files.length || batchRunning}
+                >
+                  {batchRunning ? "実行中..." : "全ファイル一括実行"}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -221,68 +259,85 @@ function App() {
           files={files}
           selectedFile={selectedFile}
           onSelectFile={setSelectedFile}
+          viewMode={viewMode}
         />
 
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {selectedFile ? (
-            <div className="flex flex-col h-full">
-              <div className="bg-white border-b border-gray-200 px-4 py-2">
-                <h1 className="font-bold text-lg">{selectedFile}</h1>
-              </div>
-
-              {/* 3-Pane Layout: Viewer (Top), TestManager (Middle), Runner (Bottom) */}
-              <div className="flex-1 flex flex-col overflow-hidden">
-                {/* File Viewer (35%) - Hide for Common Settings */}
-                {selectedFile !== "__COMMON__" && (
-                  <div className="h-[35%] overflow-hidden border-b border-gray-200 flex flex-col">
-                    <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
-                      ソースコード
-                    </div>
-                    <div className="flex-1 overflow-auto">
-                      <FileViewer content={fileContent} />
-                    </div>
-                  </div>
-                )}
-
-                {/* Test Manager (30% or 100% if Common) */}
-                <div
-                  className={`${
-                    selectedFile === "__COMMON__" ? "h-full" : "h-[30%]"
-                  } overflow-hidden border-b border-gray-200 flex flex-col`}
-                >
-                  <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
-                    {selectedFile === "__COMMON__"
-                      ? "共通テスト設計"
-                      : "テスト設計"}
-                  </div>
-                  <div className="flex-1 overflow-auto">
-                    <TestManager
-                      testCases={testCases}
-                      onUpdate={handleUpdateTestCases}
-                    />
-                  </div>
+          {viewMode === "code" ? (
+            selectedFile ? (
+              <div className="flex flex-col h-full">
+                <div className="bg-white border-b border-gray-200 px-4 py-2">
+                  <h1 className="font-bold text-lg">{selectedFile}</h1>
                 </div>
 
-                {/* Runner (35%) - Hide for Common Settings */}
-                {selectedFile !== "__COMMON__" && (
-                  <div className="h-[35%] overflow-hidden flex flex-col">
+                {/* 3-Pane Layout: Viewer (Top), TestManager (Middle), Runner (Bottom) */}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  {/* File Viewer (35%) - Hide for Common Settings */}
+                  {selectedFile !== "__COMMON__" && (
+                    <div className="h-[35%] overflow-hidden border-b border-gray-200 flex flex-col">
+                      <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
+                        ソースコード
+                      </div>
+                      <div className="flex-1 overflow-auto">
+                        <FileViewer content={fileContent} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Test Manager (30% or 100% if Common) */}
+                  <div
+                    className={`${
+                      selectedFile === "__COMMON__" ? "h-full" : "h-[30%]"
+                    } overflow-hidden border-b border-gray-200 flex flex-col`}
+                  >
                     <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
-                      実行結果 {useCommonTests ? "(共通テスト)" : ""}
+                      {selectedFile === "__COMMON__"
+                        ? "共通テスト設計"
+                        : "テスト設計"}
                     </div>
                     <div className="flex-1 overflow-auto">
-                      <Runner
-                        filename={selectedFile}
-                        testCases={useCommonTests ? commonTestCases : testCases}
-                        externalResult={currentBatchResult}
+                      <TestManager
+                        testCases={testCases}
+                        onUpdate={handleUpdateTestCases}
+                        isCommon={selectedFile === "__COMMON__"}
                       />
                     </div>
                   </div>
-                )}
+
+                  {/* Runner (35%) - Hide for Common Settings */}
+                  {selectedFile !== "__COMMON__" && (
+                    <div className="h-[35%] overflow-hidden flex flex-col">
+                      <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
+                        実行結果 {useCommonTests ? "(共通テスト)" : ""}
+                      </div>
+                      <div className="flex-1 overflow-auto">
+                        <Runner
+                          filename={selectedFile}
+                          testCases={
+                            useCommonTests ? commonTestCases : testCases
+                          }
+                          externalResult={currentBatchResult}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                ファイルを選択して採点を開始してください
+              </div>
+            )
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              ファイルを選択して採点を開始してください
+            /* PDF Mode */
+            <div className="w-full h-full">
+              {selectedFile ? (
+                <PdfViewer filename={selectedFile} />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  左側のリストからPDFファイルを選択してください
+                </div>
+              )}
             </div>
           )}
         </div>

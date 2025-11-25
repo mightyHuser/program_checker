@@ -145,13 +145,14 @@ def set_directory(request: DirectoryRequest):
     current_work_dir = request.path
     return {"status": "success", "path": current_work_dir}
 
+from fastapi.responses import FileResponse
+
 @app.get("/api/files")
-def list_files():
-    # List all .py files in the current work directory
+def list_files(extension: str = "py"):
+    # List files with specific extension in the current work directory
     files = []
-    # Use glob to find .py files in the current_work_dir
-    # We need to be careful about glob pattern
-    search_pattern = os.path.join(current_work_dir, "*.py")
+    # Use glob to find files in the current_work_dir
+    search_pattern = os.path.join(current_work_dir, f"*.{extension}")
     for file in glob.glob(search_pattern):
         files.append(os.path.basename(file))
     return {"files": files}
@@ -165,6 +166,16 @@ def get_file_content(filename: str):
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
     return {"content": content}
+
+@app.get("/api/pdfs/{filename}")
+def get_pdf_content(filename: str):
+    filepath = os.path.join(current_work_dir, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found")
+    if not filename.lower().endswith(".pdf"):
+         raise HTTPException(status_code=400, detail="Not a PDF file")
+         
+    return FileResponse(filepath, media_type="application/pdf")
 
 @app.get("/api/config/{filename}")
 def get_file_config(filename: str):
@@ -327,4 +338,4 @@ def batch_run(request: BatchExecutionRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

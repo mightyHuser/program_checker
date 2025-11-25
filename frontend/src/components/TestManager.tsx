@@ -7,11 +7,18 @@ interface TestCase {
 }
 
 interface TestManagerProps {
+  filename: string | null;
   testCases: TestCase[];
   onUpdate: (testCases: TestCase[]) => void;
+  isCommon?: boolean;
 }
 
-const TestManager: React.FC<TestManagerProps> = ({ testCases, onUpdate }) => {
+const TestManager: React.FC<TestManagerProps> = ({
+  filename,
+  testCases,
+  onUpdate,
+  isCommon = false,
+}) => {
   const [localTestCases, setLocalTestCases] = useState<TestCase[]>(testCases);
 
   useEffect(() => {
@@ -46,7 +53,9 @@ const TestManager: React.FC<TestManagerProps> = ({ testCases, onUpdate }) => {
 
   return (
     <div className="p-4 bg-gray-100 h-full overflow-y-auto">
-      <h2 className="text-lg font-bold mb-4">テストケース設定</h2>
+      <h2 className="text-lg font-bold mb-4">
+        {isCommon ? "共通テストケース設定" : "テストケース設定"}
+      </h2>
       {localTestCases.map((tc, index) => (
         <div key={index} className="mb-4 p-4 bg-white rounded shadow">
           <div className="flex justify-between mb-2">
