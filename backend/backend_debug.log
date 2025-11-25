@@ -58,3 +58,7 @@ Thread starting dialog script: C:\Users\might\code\program_checker\backend\direc
 Thread finished. Return code: 0
 Stdout: D:/第1回課題レポート/課題2-1
 
+Thread starting dialog script: C:\Users\might\code\program_checker\backend\directory_dialog.py
+Thread finished. Return code: 0
+Stdout: D:/第1回課題レポート/課題2-2
+
