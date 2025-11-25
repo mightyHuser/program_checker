@@ -18,9 +18,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
       <ul>
         <li
-          className={`p-3 cursor-pointer hover:bg-gray-700 border-b-2 border-gray-600 font-bold text-yellow-400 ${
-            selectedFile === "__COMMON__" ? "bg-gray-700" : "bg-gray-800"
+          className={`p-3 cursor-pointer border-b-2 border-gray-600 font-bold text-yellow-400 transition-colors ${
+            selectedFile === "__COMMON__" ? "" : "bg-gray-800 hover:bg-gray-700"
           }`}
+          style={{
+            backgroundColor:
+              selectedFile === "__COMMON__" ? "#4b5563" : undefined, // Force gray-600
+          }}
           onClick={() => onSelectFile("__COMMON__")}
         >
           ★ 共通設定
@@ -28,9 +32,14 @@ const Sidebar: React.FC<SidebarProps> = ({
         {files.map((file) => (
           <li
             key={file}
-            className={`p-3 cursor-pointer hover:bg-gray-700 ${
-              selectedFile === file ? "bg-blue-600" : ""
+            className={`p-3 cursor-pointer transition-colors ${
+              selectedFile === file
+                ? "font-bold text-white"
+                : "text-gray-300 hover:bg-gray-700"
             }`}
+            style={{
+              backgroundColor: selectedFile === file ? "#b2b8c2ff" : undefined, // Force gray-600
+            }}
             onClick={() => onSelectFile(file)}
           >
             {file}
