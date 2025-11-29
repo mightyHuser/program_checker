@@ -7,13 +7,17 @@ SyntaxHighlighter.registerLanguage("python", python);
 
 interface FileViewerProps {
   content: string;
+  language?: string;
 }
 
-const FileViewer: React.FC<FileViewerProps> = ({ content }) => {
+const FileViewer: React.FC<FileViewerProps> = ({
+  content,
+  language = "python",
+}) => {
   return (
     <div className="h-full overflow-auto bg-[#1e1e1e]">
       <SyntaxHighlighter
-        language="python"
+        language={language}
         style={vs2015}
         showLineNumbers={true}
         customStyle={{ margin: 0, height: "100%" }}

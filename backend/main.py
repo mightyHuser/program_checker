@@ -149,13 +149,14 @@ from fastapi.responses import FileResponse
 
 @app.get("/api/files")
 def list_files(extension: str = "py"):
-    # List files with specific extension in the current work directory
+    # List files with specific extension(s) in the current work directory
     files = []
-    # Use glob to find files in the current_work_dir
-    search_pattern = os.path.join(current_work_dir, f"*.{extension}")
-    for file in glob.glob(search_pattern):
-        files.append(os.path.basename(file))
-    return {"files": files}
+    extensions = extension.split(",")
+    for ext in extensions:
+        search_pattern = os.path.join(current_work_dir, f"*.{ext.strip()}")
+        for file in glob.glob(search_pattern):
+            files.append(os.path.basename(file))
+    return {"files": sorted(files)}
 
 @app.get("/api/files/{filename}")
 def get_file_content(filename: str):

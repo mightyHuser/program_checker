@@ -18,7 +18,7 @@ function App() {
   const [fileContent, setFileContent] = useState<string>("");
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [currentDir, setCurrentDir] = useState<string>("");
-  const [viewMode, setViewMode] = useState<"code" | "pdf">("code");
+  const [viewMode, setViewMode] = useState<"code" | "doc">("code");
 
   const [batchResults, setBatchResults] = useState<any[]>([]);
   const [batchRunning, setBatchRunning] = useState(false);
@@ -41,6 +41,14 @@ function App() {
       if (viewMode === "code") {
         fetchFileContent(selectedFile);
         fetchTestCases(selectedFile);
+      } else if (viewMode === "doc") {
+        if (selectedFile.toLowerCase().endsWith(".txt")) {
+          fetchFileContent(selectedFile);
+        } else {
+          // PDF or other types, no content fetch needed here (handled by PdfViewer or ignored)
+          setFileContent("");
+        }
+        setTestCases([]);
       }
     } else {
       setFileContent("");
@@ -93,7 +101,7 @@ function App() {
 
   const fetchFiles = async () => {
     try {
-      const extension = viewMode === "code" ? "py" : "pdf";
+      const extension = viewMode === "code" ? "py" : "pdf,txt";
       const res = await axios.get(
         `http://localhost:8000/api/files?extension=${extension}`
       );
@@ -220,13 +228,13 @@ function App() {
               </button>
               <button
                 className={`px-3 py-1 rounded text-sm font-bold ${
-                  viewMode === "pdf"
+                  viewMode === "doc"
                     ? "bg-white shadow text-red-600"
                     : "text-gray-300 hover:bg-gray-600"
                 }`}
-                onClick={() => setViewMode("pdf")}
+                onClick={() => setViewMode("doc")}
               >
-                PDF
+                資料
               </button>
             </div>
 
@@ -329,13 +337,24 @@ function App() {
               </div>
             )
           ) : (
-            /* PDF Mode */
+            /* Document Mode */
             <div className="w-full h-full">
               {selectedFile ? (
-                <PdfViewer filename={selectedFile} />
+                selectedFile.toLowerCase().endsWith(".pdf") ? (
+                  <PdfViewer filename={selectedFile} />
+                ) : (
+                  <div className="flex flex-col h-full">
+                    <div className="bg-white border-b border-gray-200 px-4 py-2">
+                      <h1 className="font-bold text-lg">{selectedFile}</h1>
+                    </div>
+                    <div className="flex-1 overflow-auto">
+                      <FileViewer content={fileContent} language="text" />
+                    </div>
+                  </div>
+                )
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
-                  左側のリストからPDFファイルを選択してください
+                  左側のリストから資料ファイルを選択してください
                 </div>
               )}
             </div>

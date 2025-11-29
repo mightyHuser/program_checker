@@ -4,7 +4,7 @@ interface SidebarProps {
   files: string[];
   selectedFile: string | null;
   onSelectFile: (filename: string) => void;
-  viewMode: "code" | "pdf";
+  viewMode: "code" | "doc";
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
