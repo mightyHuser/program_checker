@@ -37,23 +37,38 @@ function App() {
   }, [currentDir, viewMode]);
 
   useEffect(() => {
-    if (selectedFile) {
-      if (viewMode === "code") {
-        fetchFileContent(selectedFile);
-        fetchTestCases(selectedFile);
-      } else if (viewMode === "doc") {
-        if (selectedFile.toLowerCase().endsWith(".txt")) {
-          fetchFileContent(selectedFile);
-        } else {
-          // PDF or other types, no content fetch needed here (handled by PdfViewer or ignored)
-          setFileContent("");
+    let active = true;
+
+    const loadData = async () => {
+      if (selectedFile) {
+        if (viewMode === "code") {
+          const content = await fetchFileContent(selectedFile);
+          if (active) setFileContent(content || "");
+
+          const cases = await fetchTestCases(selectedFile);
+          if (active) setTestCases(cases || []);
+        } else if (viewMode === "doc") {
+          if (selectedFile.toLowerCase().endsWith(".txt")) {
+            const content = await fetchFileContent(selectedFile);
+            if (active) setFileContent(content || "");
+          } else {
+            if (active) setFileContent("");
+          }
+          if (active) setTestCases([]);
         }
-        setTestCases([]);
+      } else {
+        if (active) {
+          setFileContent("");
+          setTestCases([]);
+        }
       }
-    } else {
-      setFileContent("");
-      setTestCases([]);
-    }
+    };
+
+    loadData();
+
+    return () => {
+      active = false;
+    };
   }, [selectedFile, viewMode]);
 
   const checkDirectoryStatus = async () => {
@@ -114,26 +129,30 @@ function App() {
     }
   };
 
-  const fetchFileContent = async (filename: string) => {
-    if (filename === "__COMMON__") return;
+  const fetchFileContent = async (filename: string): Promise<string | null> => {
+    if (filename === "__COMMON__") return null;
     try {
       const res = await axios.get(
         `http://localhost:8000/api/files/${filename}`
       );
-      setFileContent(res.data.content);
+      return res.data.content;
     } catch (err) {
       console.error("Failed to fetch content", err);
+      return null;
     }
   };
 
-  const fetchTestCases = async (filename: string) => {
+  const fetchTestCases = async (
+    filename: string
+  ): Promise<TestCase[] | null> => {
     try {
       const res = await axios.get(
         `http://localhost:8000/api/config/${filename}`
       );
-      setTestCases(res.data.test_cases);
+      return res.data.test_cases;
     } catch (err) {
       console.error("Failed to fetch config", err);
+      return null;
     }
   };
 

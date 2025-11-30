@@ -164,8 +164,18 @@ def get_file_content(filename: str):
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="File not found")
     
-    with open(filepath, "r", encoding="utf-8") as f:
-        content = f.read()
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+    except UnicodeDecodeError:
+        # Fallback to Shift-JIS (cp932) for Windows environment
+        try:
+            with open(filepath, "r", encoding="cp932") as f:
+                content = f.read()
+        except Exception:
+             # If both fail, return empty or error message (or handle binary)
+             content = "Error: Unable to decode file content."
+    
     return {"content": content}
 
 @app.get("/api/pdfs/{filename}")
