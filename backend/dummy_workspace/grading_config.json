@@ -1,0 +1,9 @@
+{
+    "__COMMON__": [
+        {
+            "input_data": "1\n22",
+            "expected_output": "",
+            "run_only": true
+        }
+    ]
+}

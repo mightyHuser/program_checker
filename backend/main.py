@@ -23,6 +23,10 @@ app.add_middleware(
 # Configuration
 # Default to parent directory of backend, but can be changed
 DEFAULT_WORK_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dummy_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dummy_workspace")
+if os.path.exists(dummy_dir):
+    DEFAULT_WORK_DIR = dummy_dir
+
 current_work_dir = DEFAULT_WORK_DIR
 
 def get_config_path():
