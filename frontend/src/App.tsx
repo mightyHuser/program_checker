@@ -49,6 +49,25 @@ function App() {
   // これが無いと「同じエラー」で何度もalertが出てしまう。
   const lastDirStatusRef = useRef<string>("idle");
 
+  // 画面のダーク/ライトテーマ。localStorageに保存し次回起動時も復元する。
+  // 保存値が無ければOSの設定(prefers-color-scheme)に従う。
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    const stored = localStorage.getItem("theme");
+    if (stored === "light" || stored === "dark") return stored;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((t) => (t === "light" ? "dark" : "light"));
+  };
+
   useEffect(() => {
     fetchDirectory();
     // Poll for directory status
@@ -290,7 +309,7 @@ function App() {
   );
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden flex-col">
+    <div className="flex h-screen bg-gray-100 dark:bg-[#1e1e1e] text-gray-900 dark:text-gray-100 overflow-hidden flex-col">
       {/* Header / Directory Selection */}
       <div className="bg-gray-900 text-white p-2 flex items-center gap-4 shadow-md z-10">
         <div className="font-bold text-lg">Program Checker</div>
@@ -380,6 +399,37 @@ function App() {
               </>
             )}
           </div>
+          <button
+            onClick={toggleTheme}
+            aria-label="テーマ切替"
+            title={theme === "light" ? "ダークモードに切替" : "ライトモードに切替"}
+            className="p-2 rounded hover:bg-gray-700 text-gray-300 hover:text-white"
+          >
+            {theme === "light" ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5"
+              >
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="w-5 h-5"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
