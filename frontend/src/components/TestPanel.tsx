@@ -71,19 +71,36 @@ const TestPanel: React.FC<TestPanelProps> = ({
       )}
 
       <div className="flex-1 overflow-hidden">
-        {isCommon || activeTab === "design" ? (
+        {isCommon ? (
           <TestManager
             testCases={designTestCases}
             onUpdate={onUpdateTestCases}
             isCommon={isCommon}
           />
         ) : (
-          <Runner
-            filename={filename}
-            testCases={runTestCases}
-            externalResult={externalResult}
-            onResult={onResult}
-          />
+          <>
+            {/* TestManagerとRunnerは常に両方マウントしたままにし、
+                表示/非表示はCSSのhiddenクラスで切り替える。
+                条件付きレンダリングで片方をツリーから外すと、Runnerが
+                アンマウントされるたびに内部のresults state(実行結果)が
+                消えてしまい、タブを行き来しただけで直前に見ていた
+                PASS/FAILや差分が失われてしまうため。 */}
+            <div className={activeTab === "design" ? "h-full" : "hidden"}>
+              <TestManager
+                testCases={designTestCases}
+                onUpdate={onUpdateTestCases}
+                isCommon={isCommon}
+              />
+            </div>
+            <div className={activeTab === "result" ? "h-full" : "hidden"}>
+              <Runner
+                filename={filename}
+                testCases={runTestCases}
+                externalResult={externalResult}
+                onResult={onResult}
+              />
+            </div>
+          </>
         )}
       </div>
     </div>

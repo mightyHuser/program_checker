@@ -243,6 +243,10 @@ function App() {
       setSelectedFile(null); // Reset selection when file list changes
       setFileContent("");
       setTestCases([]);
+      // ディレクトリ切替時、前のディレクトリのPASS/FAILバッジと
+      // 一括実行結果が新しいディレクトリの同名ファイルに誤って残らないようリセットする。
+      setFileStatuses({});
+      setBatchResults([]);
     } catch (err) {
       console.error("Failed to fetch files", err);
     }

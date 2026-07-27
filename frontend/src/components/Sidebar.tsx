@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   fileStatuses = {},
 }) => {
   return (
-    <div className="w-64 bg-gray-100 dark:bg-[#252526] text-gray-800 dark:text-gray-200 h-screen overflow-y-auto flex-shrink-0 border-r border-gray-300 dark:border-[#3c3c3c]">
+    <div className="w-64 bg-gray-100 dark:bg-[#252526] text-gray-800 dark:text-gray-200 h-full overflow-y-auto flex-shrink-0 border-r border-gray-300 dark:border-[#3c3c3c]">
       <div className="p-4 font-bold text-xl border-b border-gray-300 dark:border-[#3c3c3c]">
         Program Checker
       </div>
