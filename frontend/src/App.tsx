@@ -416,7 +416,7 @@ function App() {
               </label>
               <button
                 onClick={handleBatchRun}
-                className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm font-bold whitespace-nowrap disabled:bg-gray-500"
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-bold whitespace-nowrap disabled:bg-gray-500"
                 disabled={!files.length || batchRunning}
               >
                 {batchRunning ? "実行中..." : "全ファイル一括実行"}
