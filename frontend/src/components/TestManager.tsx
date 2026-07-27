@@ -7,14 +7,12 @@ interface TestCase {
 }
 
 interface TestManagerProps {
-  filename: string | null;
   testCases: TestCase[];
   onUpdate: (testCases: TestCase[]) => void;
   isCommon?: boolean;
 }
 
 const TestManager: React.FC<TestManagerProps> = ({
-  filename,
   testCases,
   onUpdate,
   isCommon = false,

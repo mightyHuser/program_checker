@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# デバッグ用ログ(実行のたびに内容が変わり、差分ノイズになるため追跡しない)
+backend/backend_debug.log
+backend/dialog_debug.log
+
+# エディタ/OS
+.DS_Store
+.vscode/
+.idea/
+
+# フロントエンドのビルド成果物・依存関係
+frontend/node_modules/
+frontend/dist/

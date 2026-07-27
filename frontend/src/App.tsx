@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Sidebar from "./components/Sidebar";
 import FileViewer from "./components/FileViewer";
@@ -12,6 +12,23 @@ interface TestCase {
   run_only?: boolean;
 }
 
+// 一括実行(バッチ実行)1件分の結果。
+// 対象ファイルが見つからない/テスト未設定の場合は results が無く、
+// status と details だけが入る。
+interface BatchFileResult {
+  filename: string;
+  status?: string; // "NOT_FOUND" | "NO_TESTS"
+  details?: string;
+  results?: {
+    test_case: number;
+    status: string;
+    execution_time: number;
+    output: string;
+    error: string;
+    diff?: string;
+  }[];
+}
+
 function App() {
   const [files, setFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -20,8 +37,17 @@ function App() {
   const [currentDir, setCurrentDir] = useState<string>("");
   const [viewMode, setViewMode] = useState<"code" | "doc">("code");
 
-  const [batchResults, setBatchResults] = useState<any[]>([]);
+  const [batchResults, setBatchResults] = useState<BatchFileResult[]>([]);
   const [batchRunning, setBatchRunning] = useState(false);
+
+  // ディレクトリ選択(エクスプローラー)関連の状態
+  const [dirSelecting, setDirSelecting] = useState(false);
+  const [manualPathInput, setManualPathInput] = useState("");
+  const [showManualDirInput, setShowManualDirInput] = useState(false);
+  // 直前に処理したステータスを覚えておくためのref。
+  // ポーリングは1秒ごとに何度も同じステータスを受け取るため、
+  // これが無いと「同じエラー」で何度もalertが出てしまう。
+  const lastDirStatusRef = useRef<string>("idle");
 
   useEffect(() => {
     fetchDirectory();
@@ -76,11 +102,30 @@ function App() {
       const res = await axios.get(
         "http://localhost:8000/api/select-directory/status"
       );
-      if (res.data.status === "success" && res.data.path) {
-        if (res.data.path !== currentDir) {
-          setCurrentDir(res.data.path);
-          // fetchFiles will be triggered by useEffect
-        }
+      const status: string = res.data.status;
+
+      // ステータスが前回と同じなら何もしない(重複alert防止)
+      if (status === lastDirStatusRef.current) return;
+      lastDirStatusRef.current = status;
+
+      if (status === "success" && res.data.path) {
+        setCurrentDir(res.data.path);
+        setDirSelecting(false);
+        // fetchFiles will be triggered by useEffect
+      } else if (status === "error") {
+        // ダイアログスクリプトが失敗した場合(例: tkinter未インストール等)、
+        // 以前は何も表示されずボタンを押しても反応がないように見えていた。
+        // ここでユーザーにエラー内容を伝える。
+        setDirSelecting(false);
+        alert(
+          `ディレクトリ選択に失敗しました。\n${
+            res.data.error || "詳細不明のエラーです。"
+          }\n\n下の「手動でパスを入力」からディレクトリを指定できます。`
+        );
+      } else if (status === "cancelled") {
+        setDirSelecting(false);
+      } else if (status === "running") {
+        setDirSelecting(true);
       }
     } catch (err) {
       console.error("Failed to check directory status", err);
@@ -98,6 +143,12 @@ function App() {
 
   const handleSelectDirectory = async () => {
     try {
+      // 新しい選択を開始する前に、前回のステータスを忘れさせておく。
+      // こうしないと、以前も"success"だった場合に今回のsuccessが
+      // 「変化なし」と判定されてハンドリングされないことがある。
+      lastDirStatusRef.current = "idle";
+      setDirSelecting(true);
+
       // Start the selection process
       const startRes = await axios.post(
         "http://localhost:8000/api/select-directory/start"
@@ -110,7 +161,29 @@ function App() {
       }
     } catch (err) {
       console.error("Failed to start directory selection", err);
+      setDirSelecting(false);
       alert("ディレクトリ選択の開始に失敗しました。");
+    }
+  };
+
+  // GUIダイアログ(tkinter)が環境によって使えない場合の手動入力フォールバック。
+  // バックエンドの POST /api/directory は元から実装されていたが、
+  // フロントエンドから呼び出す手段が無かったため追加する。
+  const handleManualDirectorySubmit = async () => {
+    const path = manualPathInput.trim();
+    if (!path) return;
+    try {
+      const res = await axios.post("http://localhost:8000/api/directory", {
+        path,
+      });
+      setCurrentDir(res.data.path);
+      setManualPathInput("");
+      setShowManualDirInput(false);
+    } catch (err) {
+      console.error("Failed to set directory manually", err);
+      alert(
+        "ディレクトリの設定に失敗しました。パスが正しいか確認してください。"
+      );
     }
   };
 
@@ -227,10 +300,39 @@ function App() {
           </div>
           <button
             onClick={handleSelectDirectory}
-            className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm font-bold whitespace-nowrap"
+            disabled={dirSelecting}
+            className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm font-bold whitespace-nowrap disabled:bg-gray-500"
           >
-            ディレクトリ選択 (エクスプローラー)
+            {dirSelecting ? "選択中..." : "ディレクトリ選択 (エクスプローラー)"}
           </button>
+
+          <button
+            onClick={() => setShowManualDirInput((v) => !v)}
+            className="text-gray-300 hover:text-white text-xs underline whitespace-nowrap"
+          >
+            手動でパスを入力
+          </button>
+
+          {showManualDirInput && (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={manualPathInput}
+                onChange={(e) => setManualPathInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleManualDirectorySubmit();
+                }}
+                placeholder="/path/to/directory"
+                className="text-sm px-2 py-1 rounded text-black w-56"
+              />
+              <button
+                onClick={handleManualDirectorySubmit}
+                className="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs font-bold whitespace-nowrap"
+              >
+                設定
+              </button>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 ml-4 border-l border-gray-600 pl-4">
             {/* Mode Switcher */}
