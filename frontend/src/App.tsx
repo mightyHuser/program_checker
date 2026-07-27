@@ -2,9 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Sidebar from "./components/Sidebar";
 import FileViewer from "./components/FileViewer";
-import TestManager from "./components/TestManager";
-import Runner from "./components/Runner";
 import PdfViewer from "./components/PdfViewer";
+import TestPanel from "./components/TestPanel";
 
 interface TestCase {
   input_data: string;
@@ -470,16 +469,14 @@ function App() {
           {viewMode === "code" ? (
             selectedFile ? (
               <div className="flex flex-col h-full">
-                <div className="bg-white border-b border-gray-200 px-4 py-2">
+                <div className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-[#3c3c3c] px-4 py-2">
                   <h1 className="font-bold text-lg">{selectedFile}</h1>
                 </div>
 
-                {/* 3-Pane Layout: Viewer (Top), TestManager (Middle), Runner (Bottom) */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  {/* File Viewer (35%) - Hide for Common Settings */}
+                <div className="flex-1 flex overflow-hidden">
                   {selectedFile !== "__COMMON__" && (
-                    <div className="h-[35%] overflow-hidden border-b border-gray-200 flex flex-col">
-                      <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
+                    <div className="w-1/2 min-w-0 overflow-hidden border-r border-gray-200 dark:border-[#3c3c3c] flex flex-col">
+                      <div className="bg-gray-100 dark:bg-[#252526] px-2 py-1 text-xs font-bold text-gray-600 dark:text-gray-400">
                         ソースコード
                       </div>
                       <div className="flex-1 overflow-auto">
@@ -488,43 +485,21 @@ function App() {
                     </div>
                   )}
 
-                  {/* Test Manager (30% or 100% if Common) */}
                   <div
                     className={`${
-                      selectedFile === "__COMMON__" ? "h-full" : "h-[30%]"
-                    } overflow-hidden border-b border-gray-200 flex flex-col`}
+                      selectedFile === "__COMMON__" ? "w-full" : "w-1/2"
+                    } min-w-0 overflow-hidden flex flex-col`}
                   >
-                    <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
-                      {selectedFile === "__COMMON__"
-                        ? "共通テスト設計"
-                        : "テスト設計"}
-                    </div>
-                    <div className="flex-1 overflow-auto">
-                      <TestManager
-                        testCases={testCases}
-                        onUpdate={handleUpdateTestCases}
-                        isCommon={selectedFile === "__COMMON__"}
-                      />
-                    </div>
+                    <TestPanel
+                      filename={selectedFile}
+                      designTestCases={testCases}
+                      runTestCases={useCommonTests ? commonTestCases : testCases}
+                      onUpdateTestCases={handleUpdateTestCases}
+                      isCommon={selectedFile === "__COMMON__"}
+                      externalResult={currentBatchResult}
+                      extraLabel={useCommonTests ? "(共通テスト)" : ""}
+                    />
                   </div>
-
-                  {/* Runner (35%) - Hide for Common Settings */}
-                  {selectedFile !== "__COMMON__" && (
-                    <div className="h-[35%] overflow-hidden flex flex-col">
-                      <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">
-                        実行結果 {useCommonTests ? "(共通テスト)" : ""}
-                      </div>
-                      <div className="flex-1 overflow-auto">
-                        <Runner
-                          filename={selectedFile}
-                          testCases={
-                            useCommonTests ? commonTestCases : testCases
-                          }
-                          externalResult={currentBatchResult}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (
