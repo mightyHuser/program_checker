@@ -28,6 +28,7 @@ interface TestPanelProps {
   isCommon?: boolean;
   externalResult?: BatchResult;
   extraLabel?: string;
+  onResult?: (filename: string, results: { status: string }[]) => void;
 }
 
 const TestPanel: React.FC<TestPanelProps> = ({
@@ -38,6 +39,7 @@ const TestPanel: React.FC<TestPanelProps> = ({
   isCommon = false,
   externalResult,
   extraLabel,
+  onResult,
 }) => {
   const [activeTab, setActiveTab] = useState<"design" | "result">("design");
 
@@ -80,6 +82,7 @@ const TestPanel: React.FC<TestPanelProps> = ({
             filename={filename}
             testCases={runTestCases}
             externalResult={externalResult}
+            onResult={onResult}
           />
         )}
       </div>

@@ -31,12 +31,14 @@ interface RunnerProps {
       diff?: string;
     }[];
   };
+  onResult?: (filename: string, results: ExecutionResult[]) => void;
 }
 
 const Runner: React.FC<RunnerProps> = ({
   filename,
   testCases,
   externalResult,
+  onResult,
 }) => {
   const [results, setResults] = useState<{ [key: number]: ExecutionResult }>(
     {}
@@ -86,7 +88,9 @@ const Runner: React.FC<RunnerProps> = ({
           run_only: tc.run_only,
         }
       );
-      setResults((prev) => ({ ...prev, [index]: response.data }));
+      const updated = { ...results, [index]: response.data };
+      setResults(updated);
+      onResult?.(filename, Object.values(updated));
     } catch (error) {
       console.error("Error running code:", error);
       alert("Error running code");
@@ -116,6 +120,7 @@ const Runner: React.FC<RunnerProps> = ({
     }
     setResults(newResults);
     setLoading(false);
+    onResult?.(filename, Object.values(newResults));
   };
 
   return (

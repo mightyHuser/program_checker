@@ -39,6 +39,34 @@ function App() {
   const [batchResults, setBatchResults] = useState<BatchFileResult[]>([]);
   const [batchRunning, setBatchRunning] = useState(false);
 
+  // ファイルごとの最新実行結果("PASS" | "FAIL" | "TIMEOUT")。サイドバーのバッジ表示に使う。
+  const [fileStatuses, setFileStatuses] = useState<
+    Record<string, "PASS" | "FAIL" | "TIMEOUT">
+  >({});
+
+  // 複数テストケースの結果を1つのファイルステータスに集約する。
+  // 優先順位: FAIL/ERRORが1つでもあればFAIL、次にTIMEOUT、全てPASSならPASS。
+  const aggregateStatus = (
+    statuses: string[]
+  ): "PASS" | "FAIL" | "TIMEOUT" | undefined => {
+    if (statuses.length === 0) return undefined;
+    if (statuses.some((s) => s === "FAIL" || s === "ERROR")) return "FAIL";
+    if (statuses.some((s) => s === "TIMEOUT")) return "TIMEOUT";
+    if (statuses.every((s) => s === "PASS")) return "PASS";
+    return undefined;
+  };
+
+  // Runnerで個別実行/全テスト実行した結果を、ファイル単位のステータスに反映する。
+  const handleFileResult = (
+    filename: string,
+    results: { status: string }[]
+  ) => {
+    const agg = aggregateStatus(results.map((r) => r.status));
+    if (agg) {
+      setFileStatuses((prev) => ({ ...prev, [filename]: agg }));
+    }
+  };
+
   // ディレクトリ選択(エクスプローラー)関連の状態
   const [dirSelecting, setDirSelecting] = useState(false);
   const [manualPathInput, setManualPathInput] = useState("");
@@ -292,7 +320,18 @@ function App() {
         filenames: files,
         use_common: useCommonTests,
       });
-      setBatchResults(res.data.batch_results);
+      const batchFileResults: BatchFileResult[] = res.data.batch_results;
+      setBatchResults(batchFileResults);
+
+      const newStatuses: Record<string, "PASS" | "FAIL" | "TIMEOUT"> = {};
+      for (const r of batchFileResults) {
+        if (r.results && r.results.length > 0) {
+          const agg = aggregateStatus(r.results.map((tr) => tr.status));
+          if (agg) newStatuses[r.filename] = agg;
+        }
+      }
+      setFileStatuses((prev) => ({ ...prev, ...newStatuses }));
+
       alert("一括実行が完了しました。");
     } catch (err) {
       console.error("Batch run failed", err);
@@ -463,6 +502,7 @@ function App() {
           selectedFile={selectedFile}
           onSelectFile={setSelectedFile}
           viewMode={viewMode}
+          fileStatuses={fileStatuses}
         />
 
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -498,6 +538,7 @@ function App() {
                       isCommon={selectedFile === "__COMMON__"}
                       externalResult={currentBatchResult}
                       extraLabel={useCommonTests ? "(共通テスト)" : ""}
+                      onResult={handleFileResult}
                     />
                   </div>
                 </div>
