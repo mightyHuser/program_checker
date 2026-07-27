@@ -520,7 +520,7 @@ function App() {
                         ソースコード
                       </div>
                       <div className="flex-1 overflow-auto">
-                        <FileViewer content={fileContent} />
+                        <FileViewer content={fileContent} theme={theme} />
                       </div>
                     </div>
                   )}
@@ -544,7 +544,7 @@ function App() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
                 ファイルを選択して採点を開始してください
               </div>
             )
@@ -556,16 +556,20 @@ function App() {
                   <PdfViewer filename={selectedFile} />
                 ) : (
                   <div className="flex flex-col h-full">
-                    <div className="bg-white border-b border-gray-200 px-4 py-2">
+                    <div className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-[#3c3c3c] px-4 py-2">
                       <h1 className="font-bold text-lg">{selectedFile}</h1>
                     </div>
                     <div className="flex-1 overflow-auto">
-                      <FileViewer content={fileContent} language="text" />
+                      <FileViewer
+                        content={fileContent}
+                        language="text"
+                        theme={theme}
+                      />
                     </div>
                   </div>
                 )
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
                   左側のリストから資料ファイルを選択してください
                 </div>
               )}

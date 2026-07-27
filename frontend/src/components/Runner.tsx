@@ -124,9 +124,11 @@ const Runner: React.FC<RunnerProps> = ({
   };
 
   return (
-    <div className="p-4 bg-white border-t border-gray-300 h-full overflow-y-auto">
+    <div className="p-4 bg-white dark:bg-[#1e1e1e] h-full overflow-y-auto">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold">実行結果</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+          実行結果
+        </h2>
         <button
           onClick={runAll}
           disabled={loading || testCases.length === 0}
@@ -140,18 +142,23 @@ const Runner: React.FC<RunnerProps> = ({
         {testCases.map((tc, index) => {
           const res = results[index];
           return (
-            <div key={index} className="border rounded p-3">
+            <div
+              key={index}
+              className="border border-gray-200 dark:border-[#3c3c3c] rounded p-3"
+            >
               <div className="flex justify-between items-center mb-2">
-                <span className="font-semibold">ケース #{index + 1}</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                  ケース #{index + 1}
+                </span>
                 <div className="flex items-center gap-2">
                   {res && (
                     <span
                       className={`px-2 py-1 rounded text-xs font-bold ${
                         res.status === "PASS"
-                          ? "bg-green-100 text-green-800"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                           : res.status === "TIMEOUT"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                       }`}
                     >
                       {res.status}
@@ -160,7 +167,7 @@ const Runner: React.FC<RunnerProps> = ({
                   <button
                     onClick={() => runSingle(index, tc)}
                     disabled={loading}
-                    className="text-blue-600 hover:underline text-sm"
+                    className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
                   >
                     実行
                   </button>
@@ -168,26 +175,32 @@ const Runner: React.FC<RunnerProps> = ({
               </div>
 
               {res && (
-                <div className="text-sm bg-gray-50 p-2 rounded font-mono whitespace-pre-wrap">
+                <div className="text-sm bg-gray-50 dark:bg-[#252526] p-2 rounded font-mono whitespace-pre-wrap text-gray-900 dark:text-gray-100">
                   {res.error ? (
-                    <div className="text-red-600">{res.error}</div>
+                    <div className="text-red-600 dark:text-red-400">
+                      {res.error}
+                    </div>
                   ) : (
                     <>
                       <div>
-                        <div className="text-gray-500 mb-1">出力:</div>
-                        <div className="pl-2 border-l-2 border-gray-300">
+                        <div className="text-gray-500 dark:text-gray-400 mb-1">
+                          出力:
+                        </div>
+                        <div className="pl-2 border-l-2 border-gray-300 dark:border-[#3c3c3c]">
                           {res.output}
                         </div>
                       </div>
                       {res.diff && (
                         <div className="mt-2">
-                          <span className="text-gray-500">差分:</span>
-                          <pre className="text-red-600 bg-red-50 p-1 mt-1">
+                          <span className="text-gray-500 dark:text-gray-400">
+                            差分:
+                          </span>
+                          <pre className="text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 p-1 mt-1">
                             {res.diff}
                           </pre>
                         </div>
                       )}
-                      <div className="mt-1 text-xs text-gray-400">
+                      <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                         時間: {res.execution_time.toFixed(4)}s
                       </div>
                     </>
